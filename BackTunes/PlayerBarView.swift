@@ -24,16 +24,18 @@ struct PlayerOverlayView: View {
 
                 if expanded {
                     PlayerControlsView(video: video, topInset: embedHeight, expanded: $expanded)
-                        .background(.background.ignoresSafeArea())
+                        .background(Color(uiColor: .systemBackground).ignoresSafeArea())
                 } else {
                     MiniPlayerBar(video: video)
                 }
             }
             .frame(maxWidth: .infinity)
-            .background(
+            .background {
                 // Mini-bar backdrop.
-                expanded ? Color.clear : AnyShapeStyle(.bar.ignoresSafeArea())
-            )
+                if !expanded {
+                    Rectangle().fill(.bar).ignoresSafeArea()
+                }
+            }
         }
         .frame(height: expanded ? screenHeight : 60)
         .overlay(alignment: .top) {

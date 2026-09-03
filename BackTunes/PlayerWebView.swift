@@ -11,7 +11,7 @@ struct PlayerWebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        config.allowsContentJavaScript = true
+        config.preferences.javaScriptEnabled = true
 
         // Content-blocker rules + ad auto-skip script (per user settings).
         let settings = SettingsStore.shared
@@ -24,7 +24,7 @@ struct PlayerWebView: UIViewRepresentable {
             source: Self.bridgeScript,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true))
-        config.userContentController.add(context.coordinator, name: "btBridge", forMainFrameOnly: true)
+        config.userContentController.add(context.coordinator, name: "btBridge")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
@@ -39,7 +39,7 @@ struct PlayerWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.loadedVideoID != video.id {
             context.coordinator.loadedVideoID = video.id
-            webView.load(video.embedURL)
+            webView.load(URLRequest(url: video.embedURL))
         }
     }
 

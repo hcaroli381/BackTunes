@@ -28,6 +28,7 @@ enum AdBlocker {
 
     private static var compiledRuleList: WKContentRuleList?
 
+    @MainActor
     private static func lookUpOrCompile(_ store: WKContentRuleListStore,
                                         id: String,
                                         json: String) async throws -> WKContentRuleList {
@@ -56,7 +57,7 @@ enum AdBlocker {
     /// Attach to a webview configuration before any page loads.
     static func apply(to configuration: WKWebViewConfiguration, autoSkip: Bool = true) {
         if let list = compiledRuleList {
-            configuration.userContentController.add(list, forMainResourceOnly: false)
+            configuration.userContentController.add(list)
         }
         if autoSkip {
             configuration.userContentController.addUserScript(WKUserScript(

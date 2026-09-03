@@ -24,7 +24,7 @@ enum YouTubeService {
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         request.setValue("https://www.youtube.com/", forHTTPHeaderField: "Origin")
 
-        var context: [String: Any] = [
+        let context: [String: Any] = [
             "client": [
                 "clientName": "WEB",
                 "clientVersion": "2.20240702.01.00",
@@ -48,32 +48,30 @@ enum YouTubeService {
     // MARK: - Parsing
 
     private static func parseSearchResponse(_ data: Data) throws -> SearchResult {
-        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw URLError(.cannotParseResponse)
+        }
         var rawItems: [[String: Any]] = []
         var continuation: String?
 
-        if let contents = json["contents"] as? [String: Any] {
+        if let contents = key(json, "contents", "twoColumnSearchResultsRenderer", "primaryContents", "sectionListRenderer", "contents") as? [[String: Any]] {
             // First page.
-            if let twoCol = contents["twoColumnSearchResultsRenderer"]?["primaryContents"] as? [String: Any],
-               let section = twoCol["sectionListRenderer"]?["contents"] as? [[String: Any]] {
-                for sectionItem in section {
-                    if let itemSection = sectionItem["itemSectionRenderer"]?["contents"] as? [[String: Any]] {
-                        rawItems.append(contentsOf: itemSection)
-                    }
-                    if let contItem = sectionItem["continuationItemRenderer"]?["continuationEndpoint"]?["continuationCommand"]?["token"] as? String {
-                        continuation = contItem
-                    }
+            for sectionItem in contents {
+                if let itemSection = key(sectionItem, "itemSectionRenderer", "contents") as? [[String: Any]] {
+                    rawItems.append(contentsOf: itemSection)
+                }
+                if let token = key(sectionItem, "continuationItemRenderer", "continuationEndpoint", "continuationCommand", "token") as? String {
+                    continuation = token
                 }
             }
-        } else if let onResp = json["onResponseReceivedActions"] as? [[String: Any]] {
+        } else if let actions = key(json, "onResponseReceivedActions") as? [[String: Any]] {
             // Continuation page.
-            for action in onResp {
-                if let append = action["appendContinuationItemsAction"]?["continuationItems"] as? [[String: Any]] {
-                    rawItems.append(contentsOf: append)
+            for action in actions {
+                if let items = key(action, "appendContinuationItemsAction", "continuationItems") as? [[String: Any]] {
+                    rawItems.append(contentsOf: items)
                 }
-                if let contItem = action["appendContinuationItemsAction"]?["continuationItems"]?.last?["continuationItemRenderer"]?["continuationEndpoint"]?["continuationCommand"]?["token"] as? String {
-                    continuation = contItem
+                if let token = key(action, "appendContinuationItemsAction", "continuationItems", "continuationItemRenderer", "continuationEndpoint", "continuationCommand", "token") as? String {
+                    continuation = token
                 }
             }
             rawItems.removeAll { $0["continuationItemRenderer"] != nil }
@@ -84,21 +82,21 @@ enum YouTubeService {
             guard let r = item["videoRenderer"] as? [String: Any],
                   let id = r["videoId"] as? String else { continue }
 
-            let title = ((r["title"] as? [String: Any])?["runs"] as? [[String: Any]])?
+            let title = (key(r, "title", "runs") as? [[String: Any]])?
                 .compactMap { $0["text"] as? String }.joined() ?? "(untitled)"
 
-            let channel = ((r["ownerText"] as? [String: Any])?["runs"] as? [[String: Any]])?
-                .first?["text"] as? String ?? ""
+            let channel = (key(r, "ownerText", "runs") as? [[String: Any]])?
+                .first.flatMap { $0["text"] as? String } ?? ""
 
-            let views = ((r["viewCountText"] as? [String: Any])?["simpleText"] as? String)
-                ?? ((r["shortViewCountText"] as? [String: Any])?["simpleText"] as? String)
+            let views = (key(r, "viewCountText", "simpleText") as? String)
+                ?? (key(r, "shortViewCountText", "simpleText") as? String)
 
-            let length = ((r["lengthText"] as? [String: Any])?["simpleText"] as? String)
-                ?? ((r["thumbnailOverlayTimeStatusRenderer"] as? [String: Any])?["text"]?["simpleText"] as? String)
+            let length = (key(r, "lengthText", "simpleText") as? String)
+                ?? (key(r, "thumbnailOverlayTimeStatusRenderer", "text", "simpleText") as? String)
 
-            let thumbURL = ((r["thumbnail"] as? [String: Any])?["thumbnails"] as? [[String: Any]])?
+            let thumbPath = (key(r, "thumbnail", "thumbnails") as? [[String: Any]])?
                 .compactMap { $0["url"] as? String }.last
-                .flatMap { URL(string: "https:\($0)") }
+            let thumbURL = thumbPath.flatMap { URL(string: "https:\($0)") }
 
             videos.append(Video(
                 id: id,
@@ -110,5 +108,19 @@ enum YouTubeService {
         }
 
         return SearchResult(videos: videos, continuationToken: continuation)
+    }
+
+    /// Digs through nested JSON dictionaries: key(json, "a", "b", "c").
+    /// When the path crosses an array, the last element is used
+    /// (continuation tokens live on the last item of continuationItems).
+    private static func key(_ value: Any?, _ path: String...) -> Any? {
+        var current = value
+        for name in path {
+            if let array = current as? [Any] {
+                current = array.last
+            }
+            current = (current as? [String: Any])?[name]
+        }
+        return current
     }
 }
