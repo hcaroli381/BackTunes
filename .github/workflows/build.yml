@@ -1,0 +1,51 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen and ldid
+        run: brew install xcodegen ldid
+
+      - name: Regenerate assets (icon + silent audio)
+        run: python3 Tools/generate_assets.py
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build app (unsigned, device)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project BackTunes.xcodeproj \
+            -scheme BackTunes \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            | tail -n 60
+
+      - name: Fake-sign and package IPA
+        run: |
+          mkdir -p Payload
+          cp -R "build/Build/Products/Release-iphoneos/BackTunes.app" "Payload/BackTunes.app"
+          ldid -S "Payload/BackTunes.app/BackTunes"
+          zip -qry BackTunes.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: BackTunes-ipa
+          path: BackTunes.ipa
+          if-no-files-found: error
