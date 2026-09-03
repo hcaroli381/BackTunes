@@ -6,4 +6,9 @@ xcuserdata/
 .DS_Store
 
 # Local sideloading helper binaries (downloaded one-time, too big for git)
-Tools/jitterbugpair/
+Tools/jitterbugpair/jitterbugpair
+Tools/jitterbugpair/lib/
+Tools/jitterbugpair/*.mobiledevicepairing
+# iloader AppImage + extracted files (downloaded separately)
+Tools/iloader/*.AppImage
+Tools/iloader/squashfs-root/
