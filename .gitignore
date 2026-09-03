@@ -13,3 +13,7 @@ Tools/jitterbugpair/*.mobiledevicepairing
 Tools/iloader/*.AppImage
 Tools/iloader/squashfs-root/
 dist/
+
+# local anisette server binaries and ADI libs (downloaded at setup time)
+Tools/anisette/omnisette-server
+Tools/anisette/lib/

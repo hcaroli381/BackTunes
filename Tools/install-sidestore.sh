@@ -8,9 +8,19 @@
 set -e
 cd "$(dirname "$0")/.."
 
-# The default anisette server baked into AltServer v0.0.5 (armconverter.com)
-# is dead (502). SideStore's official server works — use it.
-export ALTSERVER_ANISETTE_SERVER="https://ani.sidestore.io"
+# Anisette strategy:
+#   - AltServer's default server (armconverter.com) is dead (502)
+#   - public servers like ani.sidestore.io share one Apple identity, which
+#     Apple throttles -> "auth response status code: 503"
+#   - so we run a LOCAL anisette server (SideStore's omnisette-server) that
+#     generates our own unique machine data. It needs the Apple Music ADI
+#     libs, already extracted under Tools/anisette/lib/.
+if ! curl -s -m 2 http://127.0.0.1:6969 > /dev/null 2>&1; then
+    echo "🧇 Starting local anisette server…"
+    (setsid Tools/anisette/omnisette-server --http-port 6969 > /tmp/anisette.log 2>&1 < /dev/null &)
+    sleep 3
+fi
+export ALTSERVER_ANISETTE_SERVER="http://127.0.0.1:6969"
 
 UDID=$(idevice_id -l | head -1)
 if [ -z "$UDID" ]; then
