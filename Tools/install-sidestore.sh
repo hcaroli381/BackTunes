@@ -8,6 +8,10 @@
 set -e
 cd "$(dirname "$0")/.."
 
+# The default anisette server baked into AltServer v0.0.5 (armconverter.com)
+# is dead (502). SideStore's official server works — use it.
+export ALTSERVER_ANISETTE_SERVER="https://ani.sidestore.io"
+
 UDID=$(idevice_id -l | head -1)
 if [ -z "$UDID" ]; then
     echo "❌ No iPhone detected. Plug it in, unlock it, and accept the Trust dialog."
@@ -19,15 +23,21 @@ read -rsp "🔑 Apple ID (email): " APPLE_ID; echo
 read -rsp "🔑 Apple ID password (hidden input): " APPLE_PW; echo
 echo
 
-echo "📦 [1/2] Installing SideStore…"
-Tools/altserver/AltServer -u "$UDID" -a "$APPLE_ID" -p "$APPLE_PW" dist/SideStore.ipa
+install_ipa() {
+    local ipa="$1"
+    echo "📦 Installing $ipa…"
+    if ! Tools/altserver/AltServer -d -u "$UDID" -a "$APPLE_ID" -p "$APPLE_PW" "dist/$ipa"; then
+        echo "❌ Failed to install $ipa — see output above."
+        exit 1
+    fi
+    echo "✅ $ipa installed."
+    echo
+}
 
-echo
-echo "📦 [2/2] Installing BackTunes…"
-Tools/altserver/AltServer -u "$UDID" -a "$APPLE_ID" -p "$APPLE_PW" dist/BackTunes.ipa
+install_ipa SideStore.ipa
+install_ipa BackTunes.ipa
 
-echo
-echo "✅ Done! On the iPhone:"
+echo "🎉 All done! On the iPhone:"
 echo "   1. Settings → General → VPN & Device Management → trust your Apple ID"
 echo "   2. (iOS 16+) Settings → Privacy & Security → Developer Mode → ON"
-echo "   3. Open SideStore, approve its VPN profile, then open BackTunes 🎉"
+echo "   3. Open SideStore, approve its VPN profile, then open BackTunes"
