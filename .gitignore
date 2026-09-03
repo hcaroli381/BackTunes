@@ -4,3 +4,6 @@ build/
 DerivedData/
 xcuserdata/
 .DS_Store
+
+# Local sideloading helper binaries (downloaded one-time, too big for git)
+Tools/jitterbugpair/

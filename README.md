@@ -49,16 +49,15 @@ git push -u origin main
 
 Do this once. Your phone and Linux PC just need to be on the same network for the pairing.
 
-1. On the Linux PC, download **JitterbugPair** from
-   `https://github.com/SideStore/jitterbugpair/releases` (get `jitterbugpair-linux.zip`).
+1. Get **JitterbugPair** — it's already bundled in this repo at
+   `Tools/jitterbugpair/jitterbugpair` (Linux build), or download it yourself from
+   `https://github.com/osy/Jitterbug/releases` (file: `jitterbugpair-linux.zip`).
 2. Plug the iPhone in via USB. On the phone, tap **Trust** when asked (the phone must have a passcode set).
 3. In a terminal:
 
    ```bash
-   unzip jitterbugpair-linux.zip
-   chmod +x jitterbugpair
-   sudo apt install -y libimobiledevice-utils usbmuxd   # or your distro's equivalent
-   ./jitterbugpair
+   sudo systemctl start usbmuxd        # usually starts automatically on plug
+   ./Tools/jitterbugpair/jitterbugpair
    ```
 
    This prints a **pairing file** like `XXXXXXXX-....-....-.mobiledevicepairing`.
