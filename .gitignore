@@ -12,3 +12,4 @@ Tools/jitterbugpair/*.mobiledevicepairing
 # iloader AppImage + extracted files (downloaded separately)
 Tools/iloader/*.AppImage
 Tools/iloader/squashfs-root/
+dist/
